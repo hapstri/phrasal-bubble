@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phrasal Verb Bubbles</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#efeaff;--bd:#1a1533;--card:#fff;--fg:#1a1533;--mut:#5b5680;--v:#3d5afe;--p:#ffd23f;--ok:#14d39a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17123a;--bd:#f1edff;--card:#221b52;--fg:#f1edff;--mut:#b4acdf;--v:#5870ff}}
+:root[data-theme="dark"]{--bg:#17123a;--bd:#f1edff;--card:#221b52;--fg:#f1edff;--mut:#b4acdf;--v:#5870ff}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font:15px/1.45 Fredoka,system-ui,sans-serif;overflow:hidden}
+header{display:flex;align-items:center;gap:12px;padding:10px 14px}
+h1{font-size:19px;font-weight:700;margin:0;white-space:nowrap}
+.bar{flex:1;height:12px;background:var(--card);border:2.5px solid var(--bd);border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .4s}
+#cnt{font-weight:700;font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+#hint{border:2.5px solid var(--bd);background:var(--p);color:#1a1533;font-weight:500;border-radius:14px;padding:1px 12px;box-shadow:2px 3px 0 var(--bd)}
+#hint:active{transform:translate(2px,3px);box-shadow:none}
+#hint:focus-visible,.chip:focus-visible{outline:3px solid var(--v);outline-offset:2px}
+#arena{flex:1;position:relative;overflow:hidden;touch-action:none;min-height:240px}
+#sep{position:absolute;left:14px;right:14px;border-top:2.5px dashed var(--mut);opacity:.5}
+.b{position:absolute;border-radius:50%;display:grid;place-items:center;font-weight:700;white-space:nowrap;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;border:3px solid var(--bd);box-sizing:border-box;box-shadow:3px 4px 0 var(--bd)}
+.v{background:var(--v);color:#fff}
+.p{background:var(--p);color:#1a1533}
+.drag{cursor:grabbing;z-index:5;box-shadow:5px 7px 0 var(--bd)}
+.joined{z-index:6;outline:4px solid var(--ok);outline-offset:2px}
+.pill{position:absolute;z-index:7;translate:-50% -100%;background:var(--ok);color:#062a20;border:3px solid var(--bd);border-radius:20px;padding:3px 16px;font-weight:700;font-size:20px;white-space:nowrap;box-shadow:3px 3px 0 var(--bd);animation:pop .3s ease-out;pointer-events:none}
+.cue{outline:4px solid var(--ok);outline-offset:3px;animation:cue .45s infinite alternate}
+@keyframes cue{to{outline-offset:8px}}
+.shake{animation:shake .4s}
+.hint{animation:pulse .6s 3}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes pulse{50%{transform:scale(1.2)}}
+@media (prefers-reduced-motion:reduce){.pill,.shake,.hint{animation:none}}
+#panel{background:var(--card);border-top:3px solid var(--bd);padding:10px 14px 12px;min-height:128px}
+#card .t{font-size:22px;font-weight:700}
+#card .e{color:var(--mut)}
+#card .n{font-size:13.5px;margin-top:4px;padding-left:8px;border-left:4px solid var(--ok)}
+#card .w{color:var(--v)}
+#chips{display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:3px}
+.chip{white-space:nowrap;border:2px solid var(--bd);background:transparent;color:var(--fg);border-radius:12px;padding:1px 10px;font-size:13px}
+</style></head>
+<body>
+<header><h1>Phrasal Verb Bubbles</h1><div class="bar"><i id="bar"></i></div><span id="cnt">0/0</span><button id="hint">Gợi ý</button></header>
+<div id="arena"></div>
+<div id="panel"><div id="card"></div><div id="chips"></div></div>
+<script>
+// verb|particle|nghĩa|ví dụ|loại (s=tách được, i=không tách, n=không tân ngữ)|ghi chú thêm
+const RAW=`get|up|thức dậy, rời giường|I get up at six every day.|n
+get|on|lên (xe, tàu); hòa hợp (get on with)|She gets on well with her classmates.|i|Lên phương tiện lớn: get on the bus.
+get|over|vượt qua, hồi phục sau|It took him a week to get over the flu.|i
+get|back|quay lại, trở về|We got back home late last night.|n
+take|off|cởi (đồ); máy bay cất cánh|Please take off your shoes.|s|Máy bay cất cánh không có tân ngữ: The plane took off.
+take|up|bắt đầu (một sở thích)|She took up painting last year.|s
+take|after|giống (người thân)|He takes after his father.|i
+give|up|từ bỏ|Don’t give up on your dreams!|s|Theo sau là V-ing: give up smoking.
+give|back|trả lại|Please give the book back to me.|s
+give|away|tặng, cho đi|They gave away their old clothes.|s
+put|on|mặc vào; bật (thiết bị)|Put on your jacket, it’s cold.|s
+put|off|trì hoãn|We put off the meeting until Monday.|s
+put|away|cất đi|Put your toys away, please.|s
+turn|on|bật|Can you turn on the light?|s
+turn|off|tắt|Turn off your phone in class.|s
+turn|down|vặn nhỏ; từ chối|He turned down the job offer.|s
+turn|up|vặn to; xuất hiện|Turn up the volume. / She turned up late.|s
+look|up|tra cứu|Look up the word in a dictionary.|s
+look|for|tìm kiếm|I’m looking for my keys.|i
+look|after|chăm sóc|She looks after her little brother.|i
+look|out|coi chừng, cẩn thận|Look out! There’s a car coming.|n
+go|on|tiếp tục; xảy ra|Please go on with your story.|n
+go|out|ra ngoài, đi chơi; (đèn) tắt|We go out every Saturday night.|n
+go|back|quay về|She went back to school in September.|n
+go|away|đi chỗ khác|Go away, I’m busy!|n
+go|through|trải qua; xem kỹ|She went through a difficult time.|i
+come|back|quay lại|He will come back tomorrow.|n
+come|in|đi vào|Come in and sit down.|n
+come|over|ghé chơi|Come over to my place after school.|n
+come|across|tình cờ bắt gặp|I came across an old photo yesterday.|i
+set|up|thành lập, thiết lập|They set up a new English club.|s
+set|off|lên đường, khởi hành|We set off at five in the morning.|n
+break|down|hỏng (máy móc)|Our car broke down on the way.|n
+break|up|chia tay; kết thúc|They broke up last month.|n
+pick|up|nhặt lên; đón (ai)|I’ll pick you up at seven.|s
+run|out|hết, cạn|We ran out of milk.|n|Thường đi kèm of: run out of + danh từ.
+run|into|tình cờ gặp|I ran into my teacher at the market.|i
+bring|up|nuôi dạy; đề cập đến|She was brought up in Hue.|s
+bring|back|mang trả lại; gợi nhớ|This song brings back memories.|s
+make|up|bịa ra; làm lành|He made up an excuse.|s
+find|out|tìm ra, phát hiện|I found out the truth yesterday.|s
+work|out|tập thể dục; giải ra|I work out three times a week.|n
+get|in|vào (xe hơi); đến nơi|What time does the train get in?|n|Xe nhỏ: get in the car; phương tiện lớn: get on the bus.
+get|out|ra khỏi, xuống (xe hơi)|Get out of the car, please.|n
+get|off|xuống (xe buýt, tàu)|I get off at the next stop.|i
+get|away|trốn thoát; đi nghỉ|The thief got away.|n
+get|through|vượt qua; liên lạc được|She got through the exam.|i
+get|across|truyền đạt (ý tưởng)|I couldn’t get my point across.|s
+get|down|làm buồn; ghi lại|This rainy weather gets me down.|s
+get|into|vào, được nhận vào|She got into a good university.|i
+take|in|hiểu, tiếp thu; lừa|It was too much to take in.|s
+take|out|lấy ra; mời đi chơi|He took out his phone.|s
+take|over|tiếp quản|She took over the family shop.|s
+take|on|nhận (việc); thuê|I can’t take on more work.|s
+take|down|ghi lại; gỡ xuống|Take down my number.|s
+take|back|rút lại lời; mang trả|I take it back. I’m sorry.|s
+take|away|mang đi; lấy đi|Please take away the plates.|s
+take|for|nhầm tưởng là|Don’t take me for a fool.|s
+give|in|chịu thua; nộp (bài)|He finally gave in.|n
+give|out|phát; cạn kiệt|The teacher gave out the tests.|s
+give|off|tỏa ra (mùi, nhiệt)|Flowers give off a sweet smell.|s
+put|up|dựng, treo; cho ở nhờ|They put up a tent.|s
+put|down|đặt xuống|Put down your pen.|s
+put|out|dập tắt|They put out the fire.|s
+put|in|lắp đặt; bỏ (công sức)|We put in a lot of effort.|s
+put|back|đặt lại chỗ cũ|Put the book back on the shelf.|s
+put|through|nối máy|Please put me through to the manager.|s
+put|across|truyền đạt|She puts her ideas across clearly.|s
+turn|over|lật|Turn over the page.|s
+turn|in|nộp; đi ngủ|Turn in your homework on Friday.|s
+turn|out|hóa ra; tắt (đèn)|It turned out to be a mistake.|n
+turn|back|quay lại|We turned back because of the storm.|n
+turn|away|từ chối không cho vào; quay đi|The club turned him away.|s
+turn|into|biến thành|The frog turned into a prince.|i
+look|back|nhìn lại, hồi tưởng|Looking back, it was a good decision.|n
+look|down|khinh thường (look down on)|Don’t look down on others.|n|Đi với on: look down on someone.
+look|over|xem lướt, kiểm tra|Look over your answers.|s
+look|into|điều tra, xem xét|The police are looking into the case.|i
+look|through|xem lướt qua|She looked through the files.|i
+look|away|quay mặt đi|He looked away, embarrassed.|n
+go|up|tăng|Prices went up again.|n
+go|down|giảm; (mặt trời) lặn|The price went down.|n
+go|off|nổ; reo (chuông); ôi thiu|The alarm went off at six.|n
+go|over|xem lại, ôn lại|Let’s go over the plan.|i
+go|in|đi vào|Go in and sit down.|n
+go|into|đi vào; bàn chi tiết|I don’t want to go into details.|i
+go|after|đuổi theo, theo đuổi|He went after the thief.|i
+go|for|chọn; cố gắng đạt|I’ll go for the blue one.|i
+go|across|băng qua|Go across the bridge.|i
+come|up|xuất hiện; được đề cập|A problem came up at work.|n
+come|down|giảm; đi xuống|Prices are coming down.|n
+come|out|ra mắt; (hoa) nở|Her new book comes out in May.|n
+come|off|bong ra; thành công|The handle came off.|n
+come|on|nào!; tiến triển|Come on, we’ll be late!|n
+come|through|vượt qua (khó khăn)|He came through the surgery well.|i
+come|into|thừa kế, có được|She came into a fortune.|i
+come|after|đuổi theo; đến sau|The dog came after me.|i
+set|out|lên đường; bắt đầu với mục tiêu|They set out at dawn.|n
+set|down|đặt xuống; ghi lại|Set down your bags here.|s
+set|back|làm chậm lại|The rain set us back two hours.|s
+set|in|bắt đầu (điều khó chịu)|Winter has set in.|n
+break|in|đột nhập; ngắt lời|Thieves broke in last night.|n
+break|out|nổ ra (chiến tranh, cháy)|A fire broke out in the kitchen.|n
+break|off|dừng, cắt đứt|They broke off the talks.|s
+break|through|đột phá; xuyên qua|The sun broke through the clouds.|i
+break|away|thoát ra, ly khai|He broke away from the group.|n
+break|into|đột nhập vào|Someone broke into our house.|i
+pick|on|bắt nạt, hay chỉ trích|Don’t pick on your sister.|i
+pick|out|chọn ra|She picked out a red dress.|s
+run|away|bỏ chạy, bỏ nhà đi|He ran away from home.|n
+run|down|hết pin; tông phải|The battery ran down.|s
+run|over|cán qua|The truck ran over a box.|s
+run|after|đuổi theo|He ran after the bus.|i
+run|through|xem nhanh, tập duyệt|Let’s run through the script.|i
+run|for|ứng cử|She ran for class president.|i
+run|across|tình cờ gặp|I ran across his name in a book.|i
+run|up|để (nợ) tăng lên|He ran up a huge bill.|s
+run|on|chạy bằng (nhiên liệu)|The car runs on diesel.|i
+bring|in|mang lại (tiền); đưa vào|The shop brings in $500 a day.|s
+bring|out|tung ra; làm lộ ra|They brought out a new phone.|s
+bring|down|hạ xuống; làm sụp đổ|The shop brought down its prices.|s
+bring|over|mang sang|Bring your friend over.|s
+bring|on|gây ra (bệnh, vấn đề)|Stress brought on a headache.|s
+make|out|nhìn ra, nghe ra|I can’t make out the words.|s
+make|for|hướng về|We made for the exit.|i
+make|into|biến thành|They made the barn into a house.|s
+make|off|chuồn đi|The thief made off with my bag.|n|Thường: make off with + vật bị lấy.
+work|on|đang làm, cải thiện|She is working on a new project.|i
+work|through|giải quyết dần|We worked through the problems.|i
+work|up|gây dựng (cảm giác)|A long walk worked up my appetite.|s
+work|off|xả (năng lượng, mỡ)|He worked off the stress by running.|s`;
+const $=id=>document.getElementById(id);
+const D=RAW.split('\n').map(l=>{const [v,p,m,e,f,x]=l.split('|');return{v,p,m,e,f,x,k:v+' '+p}});
+const K=new Map(D.map(d=>[d.k,d])),found=new Set(),A=$('arena'),uniq=a=>[...new Set(a)];
+let B=[],S=56;
+const TAG={s:d=>`Tách được: ${d.v} <b>it</b> ${d.p}. Đại từ phải đứng giữa, không nói “${d.v} ${d.p} it”.`,i:d=>`Không tách: tân ngữ luôn đứng sau (${d.v} ${d.p} + tân ngữ).`,n:()=>'Không cần tân ngữ.'};
+function card(d){$('card').innerHTML=`<div class="t">${d.k}</div><div>${d.m}</div><div class="e">“${d.e}”</div><div class="n">${TAG[d.f](d)}${d.x?' '+d.x:''}</div>`}
+function prog(){$('cnt').textContent=found.size+'/'+D.length;$('bar').style.width=found.size/D.length*100+'%'}
+function place(b){b.el.style.left=b.x+'px';b.el.style.top=b.y+'px'}
+function mk(t,w){const el=document.createElement('div');el.className='b '+t;el.textContent=w;A.appendChild(el);
+ const b={el,t,w,x:0,y:0,hx:0,hy:0,ph:Math.random()*6.28,drag:0,lock:0,cool:0,rel:0,vx:Math.random()-.5,vy:Math.random()-.5};
+ el.onpointerdown=e=>{if(performance.now()<b.lock)return;el.setPointerCapture(e.pointerId);const a=A.getBoundingClientRect();b.drag=1;b.ox=a.left;b.oy=a.top;b.dx=e.clientX-a.left-b.x;b.dy=e.clientY-a.top-b.y;el.classList.add('drag')};
+ el.onpointermove=e=>{if(!b.drag)return;const px=b.x,py=b.y;b.x=Math.max(0,Math.min(A.clientWidth-S,e.clientX-b.ox-b.dx));b.y=Math.max(0,Math.min(A.clientHeight-S,e.clientY-b.oy-b.dy));b.vx=(b.x-px)*.4;b.vy=(b.y-py)*.4;place(b);check(b)};
+ el.onpointerup=el.onpointercancel=()=>{b.drag=0;el.classList.remove('drag');clearCue()};
+ B.push(b)}
+function layout(){const W=A.clientWidth,H=A.clientHeight,pad=14,gap=8,mid=26,zw=W-2*pad,vs=B.filter(b=>b.t==='v'),ps=B.filter(b=>b.t==='p');let s=66,c=1;
+ for(;s>34;s-=2){c=Math.max(1,Math.floor((zw+gap)/(s+gap)));if((Math.ceil(vs.length/c)+Math.ceil(ps.length/c))*(s+gap)-gap+mid<=H-2*pad)break}
+ S=s;const rv=Math.ceil(vs.length/c),rp=Math.ceil(ps.length/c),tot=(rv+rp)*(s+gap)-gap+mid,top=Math.max(pad,(H-tot)/2),py=top+rv*(s+gap)-gap+mid;
+ [[vs,top],[ps,py]].forEach(([arr,y0])=>arr.forEach((b,i)=>{const row=Math.floor(i/c),n=Math.min(c,arr.length-row*c);b.hx=pad+(zw-(n*(s+gap)-gap))/2+(i%c)*(s+gap);b.hy=y0+row*(s+gap);
+  b.el.style.width=b.el.style.height=s+'px';b.el.style.fontSize=Math.min(s*.28,1.45*s/b.w.length)+'px'}));
+ }
+let cued=[];function clearCue(){cued.forEach(x=>x.el.classList.remove('cue'));cued=[]}
+function check(b){const now=performance.now();if(b.lock>now)return;clearCue();
+ for(const o of B){if(o===b||o.t===b.t||o.lock>now)continue;
+  const dx=b.x-o.x,dy=b.y-o.y,dist=Math.hypot(dx,dy);
+  if(dist<S*1.7&&dist>=S*.92&&K.has((b.t==='v'?b.w+' '+o.w:o.w+' '+b.w))){cued.push(b,o);b.el.classList.add('cue');o.el.classList.add('cue');b.x-=dx*.03;b.y-=dy*.03;place(b)}
+  if(dist>S*.92)continue;
+  const v=b.t==='v'?b:o,p=b.t==='v'?o:b,d=K.get(v.w+' '+p.w);
+  if(d)return merge(v,p,d);
+  if(now<b.cool)return;b.cool=now+700;
+  for(const x of[b,o]){x.el.classList.remove('shake');void x.el.offsetWidth;x.el.classList.add('shake')}
+  const L=dist||1;o.vx-=dx/L*2.2;o.vy-=dy/L*2.2;
+  $('card').innerHTML=`<div class="t"><span class="w">${v.w} + ${p.w}</span></div><div>Không có trong bộ ${D.length} cụm của game (hoặc không phải phrasal verb thông dụng). Thử bubble khác.</div>`;return}}
+function merge(v,p,d){const W=A.clientWidth,H=A.clientHeight,cx=(v.x+p.x)/2+S/2,cy=(v.y+p.y)/2+S/2,
+ lx=Math.max(0,Math.min(W-2*S,cx-S)),ly=Math.max(0,Math.min(H-S,cy-S/2)),until=performance.now()+1800;
+ clearCue();[v,p].forEach(b=>{b.drag=0;b.rel=1;b.lock=until;b.el.classList.remove('drag');b.el.classList.add('joined')});
+ v.lx=lx;p.lx=lx+S;v.ly=p.ly=ly;
+ const pl=document.createElement('div');pl.className='pill';pl.textContent=d.k;pl.style.left=(lx+S)+'px';pl.style.top=Math.max(40,ly-8)+'px';A.appendChild(pl);
+ setTimeout(()=>{pl.remove();[v,p].forEach(b=>b.el.classList.remove('joined'))},1800);
+ const isNew=!found.has(d.k);found.add(d.k);card(d);prog();
+ if(isNew){const c=document.createElement('button');c.className='chip';c.textContent=d.k;c.onclick=()=>card(d);$('chips').prepend(c)}
+ if(found.size===D.length)$('card').innerHTML+='<div class="t">Hoàn thành cả '+D.length+' cụm!</div>'}
+$('hint').onclick=()=>{const c=D.filter(d=>!found.has(d.k));if(!c.length)return;const d=c[Math.random()*c.length|0];
+ B.forEach(b=>{if((b.t==='v'&&b.w===d.v)||(b.t==='p'&&b.w===d.p)){b.el.classList.add('hint');setTimeout(()=>b.el.classList.remove('hint'),1900)}})};
+function tick(){const now=performance.now(),W=A.clientWidth-S,H=A.clientHeight-S;
+ for(const b of B){if(b.drag)continue;
+  if(b.lock>now){b.x+=(b.lx-b.x)*.14;b.y+=(b.ly-b.y)*.14;place(b);continue}
+  if(b.rel){b.rel=0;b.vx=(b.t==='v'?-1:1)*.7;b.vy=(Math.random()-.5)*.5}
+  b.vx+=(Math.random()-.5)*.05;b.vy+=(Math.random()-.5)*.05;
+  for(const o of B){if(o===b||o.drag)continue;const dx=b.x-o.x,dy=b.y-o.y,d=Math.hypot(dx,dy)||1,m=S*1.02;if(d<m){const f=(m-d)*.01;b.vx+=dx/d*f;b.vy+=dy/d*f}}
+  b.vx*=.985;b.vy*=.985;const sp=Math.hypot(b.vx,b.vy);if(sp>1.6){b.vx*=1.6/sp;b.vy*=1.6/sp}
+  b.x+=b.vx;b.y+=b.vy;
+  if(b.x<0||b.x>W){b.x=Math.max(0,Math.min(W,b.x));b.vx*=-.4}
+  if(b.y<0||b.y>H){b.y=Math.max(0,Math.min(H,b.y));b.vy*=-.4}
+  place(b)}
+ requestAnimationFrame(tick)}
+uniq(D.map(d=>d.v)).forEach(w=>mk('v',w));uniq(D.map(d=>d.p)).forEach(w=>mk('p',w));
+layout();B.forEach(b=>{b.x=b.hx;b.y=b.hy;place(b)});window.addEventListener('resize',layout);
+$('card').innerHTML='<div class="t">Kéo bubble xanh (động từ) lại gần bubble vàng (giới từ).</div><div class="e">Hai bubble ghép được sẽ phát sáng viền xanh; chạm vào nhau để hợp nhất và xem nghĩa.</div>';
+prog();tick();
+</script></body></html>
